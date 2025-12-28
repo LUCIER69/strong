@@ -218,7 +218,7 @@
             firebaseConfig = JSON.parse(__firebase_config);
             appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         } else {
-            // نحن على GitHub (استخدام بياناتك الخاصة)
+            // نحن على GitHub (استخدام بياناتك الخاصة التي تم تحديثها)
             firebaseConfig = {
                 apiKey: "AIzaSyBwdbKsn0BRZrRnBkIBd5EZoVycpPVP6qM",
                 authDomain: "ohi-73dcf.firebaseapp.com",
@@ -228,7 +228,8 @@
                 appId: "1:653017680372:web:0f27125f397aff0c4391a1",
                 measurementId: "G-FJKX5X1JRY"
             };
-            appId = "quiz-app-v1"; // معرف التطبيق داخل قاعدة البيانات
+            // هذا المعرف خاص بمسار قاعدة البيانات Firestore ويختلف عن appId الموجود داخل firebaseConfig
+            appId = "quiz-app-v1"; 
         }
 
         // بدء التطبيق فقط إذا كانت الإعدادات موجودة
