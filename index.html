@@ -200,25 +200,23 @@
 
     <!-- Firebase Logic -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // ==========================================
         // إعدادات Firebase
         // ==========================================
         
         let firebaseConfig;
-        let appId; // يستخدم لتحديد مسار البيانات في قاعدة البيانات
+        let appId; 
 
-        // التحقق مما إذا كنا في بيئة المعاينة (Preview) أو على GitHub
         if (typeof __firebase_config !== 'undefined') {
-            // نحن هنا في المحرر، نستخدم الإعدادات التلقائية
             firebaseConfig = JSON.parse(__firebase_config);
             appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         } else {
-            // نحن على GitHub (استخدام بياناتك الخاصة التي تم تحديثها)
+            // بيانات مشروعك الخاصة
             firebaseConfig = {
                 apiKey: "AIzaSyBwdbKsn0BRZrRnBkIBd5EZoVycpPVP6qM",
                 authDomain: "ohi-73dcf.firebaseapp.com",
@@ -228,67 +226,77 @@
                 appId: "1:653017680372:web:0f27125f397aff0c4391a1",
                 measurementId: "G-FJKX5X1JRY"
             };
-            // هذا المعرف خاص بمسار قاعدة البيانات Firestore ويختلف عن appId الموجود داخل firebaseConfig
             appId = "quiz-app-v1"; 
         }
 
-        // بدء التطبيق فقط إذا كانت الإعدادات موجودة
         if (firebaseConfig && firebaseConfig.apiKey) {
             const app = initializeApp(firebaseConfig);
             const auth = getAuth(app);
             const db = getFirestore(app);
             
-            // تفعيل التحليلات (Analytics) كما طلبت
             try {
                 const analytics = getAnalytics(app);
-                console.log("Firebase Analytics Initialized");
+                console.log("Analytics Initialized");
             } catch (e) {
-                console.log("Analytics not supported in this environment");
+                console.warn("Analytics failed (possibly due to ad blocker):", e);
             }
 
             async function initCounter() {
+                // 1. محاولة تسجيل الدخول
                 try {
-                    // تسجيل الدخول (مطلوب للقراءة/الكتابة)
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         await signInWithCustomToken(auth, __initial_auth_token);
                     } else {
                         await signInAnonymously(auth);
                     }
-
-                    // التعامل مع العداد
-                    const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'stats', 'views');
-
-                    // 1. زيادة العداد
-                    try {
-                        await updateDoc(statsRef, {
-                            count: increment(1)
-                        });
-                    } catch (e) {
-                        // إذا لم تكن الوثيقة موجودة، قم بإنشائها
-                        await setDoc(statsRef, { count: 1 });
-                    }
-
-                    // 2. الاستماع للتغييرات لعرض الرقم
-                    onSnapshot(statsRef, (docSnap) => {
-                        if (docSnap.exists()) {
-                            const count = docSnap.data().count;
-                            document.getElementById('view-count-display').innerText = count + " زائر";
-                        }
-                    }, (error) => {
-                         console.error("Error getting view count:", error);
-                         document.getElementById('view-count-display').innerText = "غير متصل";
-                    });
-
-                } catch (error) {
-                    console.error("Firebase Auth/Init Error:", error);
-                    document.getElementById('view-count-display').innerText = "وضع غير متصل";
+                    console.log("Logged in anonymously");
+                } catch (authError) {
+                    console.error("Firebase Auth Error:", authError);
+                    // لن نتوقف هنا، قد تسمح القواعد بالقراءة العامة
                 }
+
+                const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'stats', 'views');
+
+                // 2. محاولة زيادة العداد (الكتابة)
+                // نفصلها في try/catch مستقل لكي لا تمنع عرض الرقم إذا فشلت
+                try {
+                    await updateDoc(statsRef, {
+                        count: increment(1)
+                    });
+                    console.log("View count incremented");
+                } catch (writeError) {
+                    // إذا فشل التحديث (الوثيقة غير موجودة)، نحاول إنشاءها
+                    try {
+                        await setDoc(statsRef, { count: 1 }, { merge: true });
+                        console.log("View count created");
+                    } catch (createError) {
+                        console.warn("Could not write to DB (likely permissions):", createError.message);
+                    }
+                }
+
+                // 3. الاستماع للتغييرات لعرض الرقم (القراءة)
+                onSnapshot(statsRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const count = docSnap.data().count;
+                        document.getElementById('view-count-display').innerText = count + " زائر";
+                    } else {
+                        document.getElementById('view-count-display').innerText = "0 زائر";
+                    }
+                }, (error) => {
+                     console.error("Error reading view count:", error);
+                     // إذا ظهرت هذه الرسالة فهذا يعني أن "قواعد الأمان" تمنع القراءة أيضاً
+                     if(error.code === 'permission-denied') {
+                         document.getElementById('view-count-display').innerText = "خطأ (صلاحيات)";
+                     } else {
+                         document.getElementById('view-count-display').innerText = "غير متصل";
+                     }
+                });
             }
 
             initCounter();
         } else {
             console.log("No Firebase Config detected. Running in offline mode.");
-            document.getElementById('view-count-display').innerText = "تجريبي (غير متصل)";
+            document.getElementById('view-count-display').innerText = "تجريبي";
         }
     </script>
 
