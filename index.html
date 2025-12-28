@@ -34,7 +34,13 @@
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
 
     <!-- Start Screen -->
-    <div id="start-screen" class="w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden p-8 text-center border-t-8 border-blue-600">
+    <div id="start-screen" class="w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden p-8 text-center border-t-8 border-blue-600 relative">
+        <!-- View Counter Badge -->
+        <div class="absolute top-4 left-4 bg-gray-100 px-3 py-1 rounded-full text-xs text-gray-500 flex items-center shadow-inner" title="عدد الزوار">
+            <i class="fas fa-eye ml-2 text-blue-500"></i>
+            <span id="view-count-display">جاري التحميل...</span>
+        </div>
+
         <div class="mb-6 inline-block p-4 rounded-full bg-blue-50 text-blue-600">
             <i class="fas fa-brain text-6xl"></i>
         </div>
@@ -191,6 +197,99 @@
             </div>
         </div>
     </div>
+
+    <!-- Firebase Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==========================================
+        // إعدادات Firebase
+        // ==========================================
+        
+        let firebaseConfig;
+        let appId; // يستخدم لتحديد مسار البيانات في قاعدة البيانات
+
+        // التحقق مما إذا كنا في بيئة المعاينة (Preview) أو على GitHub
+        if (typeof __firebase_config !== 'undefined') {
+            // نحن هنا في المحرر، نستخدم الإعدادات التلقائية
+            firebaseConfig = JSON.parse(__firebase_config);
+            appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        } else {
+            // نحن على GitHub (استخدام بياناتك الخاصة)
+            firebaseConfig = {
+                apiKey: "AIzaSyBwdbKsn0BRZrRnBkIBd5EZoVycpPVP6qM",
+                authDomain: "ohi-73dcf.firebaseapp.com",
+                projectId: "ohi-73dcf",
+                storageBucket: "ohi-73dcf.firebasestorage.app",
+                messagingSenderId: "653017680372",
+                appId: "1:653017680372:web:0f27125f397aff0c4391a1",
+                measurementId: "G-FJKX5X1JRY"
+            };
+            appId = "quiz-app-v1"; // معرف التطبيق داخل قاعدة البيانات
+        }
+
+        // بدء التطبيق فقط إذا كانت الإعدادات موجودة
+        if (firebaseConfig && firebaseConfig.apiKey) {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            
+            // تفعيل التحليلات (Analytics) كما طلبت
+            try {
+                const analytics = getAnalytics(app);
+                console.log("Firebase Analytics Initialized");
+            } catch (e) {
+                console.log("Analytics not supported in this environment");
+            }
+
+            async function initCounter() {
+                try {
+                    // تسجيل الدخول (مطلوب للقراءة/الكتابة)
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    // التعامل مع العداد
+                    const statsRef = doc(db, 'artifacts', appId, 'public', 'data', 'stats', 'views');
+
+                    // 1. زيادة العداد
+                    try {
+                        await updateDoc(statsRef, {
+                            count: increment(1)
+                        });
+                    } catch (e) {
+                        // إذا لم تكن الوثيقة موجودة، قم بإنشائها
+                        await setDoc(statsRef, { count: 1 });
+                    }
+
+                    // 2. الاستماع للتغييرات لعرض الرقم
+                    onSnapshot(statsRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const count = docSnap.data().count;
+                            document.getElementById('view-count-display').innerText = count + " زائر";
+                        }
+                    }, (error) => {
+                         console.error("Error getting view count:", error);
+                         document.getElementById('view-count-display').innerText = "غير متصل";
+                    });
+
+                } catch (error) {
+                    console.error("Firebase Auth/Init Error:", error);
+                    document.getElementById('view-count-display').innerText = "وضع غير متصل";
+                }
+            }
+
+            initCounter();
+        } else {
+            console.log("No Firebase Config detected. Running in offline mode.");
+            document.getElementById('view-count-display').innerText = "تجريبي (غير متصل)";
+        }
+    </script>
 
     <script>
         // --- 1. Quiz Data Definition ---
