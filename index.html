@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المحلل الذكي - اقتصاديات الخدمة العامة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f0f4f8;
+            user-select: none;
+        }
+        .correct-anim { animation: pulse-green 0.5s; }
+        .wrong-anim { animation: shake 0.5s; }
+        
+        @keyframes pulse-green {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .category-bar { transition: width 1s ease-in-out; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden p-8 text-center border-t-8 border-blue-600">
+        <div class="mb-6 inline-block p-4 rounded-full bg-blue-50 text-blue-600">
+            <i class="fas fa-brain text-6xl"></i>
+        </div>
+        <h1 class="text-4xl font-black text-gray-800 mb-2">اقتصاديات الخدمة العامة</h1>
+        <h2 class="text-xl font-medium text-blue-600 mb-6">نظام التقييم والتحليل الذكي</h2>
+        
+        <p class="text-gray-600 mb-8 text-lg leading-relaxed max-w-2xl mx-auto">
+            هذا ليس مجرد اختبار عادي. سيقوم النظام بتحليل إجاباتك في <strong>100 سؤال</strong> لتحديد نقاط قوتك وضعفك بدقة، وسيوجهك للأجزاء التي تحتاج للتركيز عليها في المادة.
+        </p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 hover:shadow-md transition">
+                <i class="fas fa-stopwatch text-orange-500 text-2xl mb-2"></i>
+                <div class="font-bold text-gray-800">45 ثانية</div>
+                <div class="text-xs text-gray-500">لكل سؤال</div>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 hover:shadow-md transition">
+                <i class="fas fa-chart-pie text-green-500 text-2xl mb-2"></i>
+                <div class="font-bold text-gray-800">تحليل فوري</div>
+                <div class="text-xs text-gray-500">لكل أقسام المادة</div>
+            </div>
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 hover:shadow-md transition">
+                <i class="fas fa-file-contract text-purple-500 text-2xl mb-2"></i>
+                <div class="font-bold text-gray-800">100 سؤال</div>
+                <div class="text-xs text-gray-500">شاملة المنهج</div>
+            </div>
+        </div>
+
+        <button onclick="startQuiz()" class="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-12 rounded-2xl transition duration-300 transform hover:scale-105 shadow-xl text-xl flex items-center justify-center mx-auto">
+            <i class="fas fa-play ml-2"></i> ابدأ التحدي
+        </button>
+    </div>
+
+    <!-- Quiz Screen -->
+    <div id="quiz-screen" class="hidden w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden relative min-h-[600px] flex flex-col">
+        <!-- Top Bar -->
+        <div class="bg-gray-900 text-white p-4 flex justify-between items-center">
+            <div class="flex items-center space-x-4 space-x-reverse">
+                <div class="bg-gray-800 px-4 py-1 rounded-full text-sm font-bold flex items-center">
+                    <i class="fas fa-list-ol ml-2 text-gray-400"></i>
+                    <span id="current-q-num">1</span> <span class="text-gray-500 mx-1">/</span> <span id="total-q-num">100</span>
+                </div>
+                <div id="category-badge" class="hidden md:block text-xs bg-blue-900 text-blue-200 px-3 py-1 rounded-full border border-blue-700">
+                    <!-- Category Name -->
+                </div>
+            </div>
+            <div class="flex items-center">
+                <div class="relative">
+                    <svg class="w-12 h-12 transform -rotate-90">
+                        <circle cx="24" cy="24" r="18" stroke="currentColor" stroke-width="4" fill="transparent" class="text-gray-700" />
+                        <circle id="timer-circle" cx="24" cy="24" r="18" stroke="currentColor" stroke-width="4" fill="transparent" class="text-green-500 transition-all duration-1000 ease-linear" stroke-dasharray="113" stroke-dashoffset="0" />
+                    </svg>
+                    <span id="timer-text" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-bold text-sm">45</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Line -->
+        <div class="w-full bg-gray-200 h-1">
+            <div id="progress-bar" class="bg-blue-600 h-1 transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <div class="p-6 md:p-10 flex-grow flex flex-col justify-center">
+            
+            <!-- Question Content -->
+            <div class="mb-8">
+                <!-- Image Placeholder -->
+                <div id="question-image-container" class="hidden mb-6 rounded-xl overflow-hidden border-2 border-gray-100 shadow-inner bg-gray-50">
+                    <div class="h-48 w-full flex flex-col items-center justify-center text-gray-400">
+                        <i class="fas fa-chart-area text-4xl mb-2 text-blue-200"></i>
+                        <p class="text-sm font-medium">رسم بياني توضيحي</p>
+                    </div>
+                </div>
+
+                <h2 id="question-text" class="text-2xl md:text-3xl font-bold text-gray-800 leading-normal text-right mb-4">
+                    <!-- Question goes here -->
+                </h2>
+
+                <div id="hint-text" class="hidden text-sm text-yellow-700 bg-yellow-50 p-3 rounded-lg border-r-4 border-yellow-400 inline-block animate-pulse">
+                    <i class="far fa-lightbulb ml-2"></i> <span id="hint-content"></span>
+                </div>
+            </div>
+
+            <!-- Options Grid -->
+            <div id="options-container" class="grid grid-cols-1 gap-4">
+                <!-- Options injected by JS -->
+            </div>
+
+            <!-- Feedback Area -->
+            <div id="feedback-area" class="hidden mt-6 p-5 rounded-2xl border-2 transform transition-all duration-300 shadow-sm">
+                <div class="flex items-start">
+                    <div id="feedback-icon" class="text-3xl ml-4 mt-1 flex-shrink-0"></div>
+                    <div>
+                        <h3 id="feedback-title" class="font-bold text-xl mb-2"></h3>
+                        <p id="feedback-rationale" class="text-gray-700 leading-relaxed text-sm md:text-base"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Bar -->
+        <div class="p-4 bg-gray-50 border-t flex justify-between items-center">
+            <div class="text-sm text-gray-500">
+                الدرجة الحالية: <span id="current-score" class="font-bold text-blue-600">0</span>
+            </div>
+            <button id="next-btn" onclick="nextQuestion()" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-8 rounded-lg transition duration-300 shadow-lg flex items-center">
+                التالي <i class="fas fa-chevron-left mr-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Result Screen -->
+    <div id="result-screen" class="hidden w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+        
+        <!-- Left Side: Summary -->
+        <div class="w-full md:w-1/3 bg-gradient-to-br from-blue-800 to-indigo-900 text-white p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-full opacity-10">
+                <i class="fas fa-chart-line text-9xl absolute -bottom-10 -left-10 transform rotate-12"></i>
+            </div>
+            
+            <div id="result-badge" class="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-6 shadow-xl border-4 border-white/30">
+                <i id="result-icon" class="fas fa-trophy text-4xl text-yellow-300"></i>
+            </div>
+            
+            <h2 class="text-3xl font-bold mb-2">نتيجتك النهائية</h2>
+            <div class="text-6xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-b from-white to-blue-200">
+                <span id="final-score">0</span>%
+            </div>
+            <p id="result-message" class="text-blue-100 text-lg mb-8 px-4 font-medium"></p>
+            
+            <button onclick="restartQuiz()" class="bg-white text-blue-900 hover:bg-blue-50 font-bold py-3 px-8 rounded-full transition shadow-lg w-full mb-3">
+                <i class="fas fa-redo ml-2"></i> إعادة اختبار جديد
+            </button>
+        </div>
+
+        <!-- Right Side: Detailed Analysis -->
+        <div class="w-full md:w-2/3 p-8 bg-gray-50 overflow-y-auto max-h-[90vh]">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6 border-r-4 border-blue-600 pr-3">تحليل الأداء حسب الموضوع</h3>
+            
+            <!-- Analysis Chart Area -->
+            <div class="space-y-6 mb-8" id="category-bars-container">
+                <!-- Bars will be injected here -->
+            </div>
+
+            <!-- Recommendations Box -->
+            <div class="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+                <div class="flex items-center mb-4 text-orange-600">
+                    <i class="fas fa-exclamation-triangle text-xl ml-2"></i>
+                    <h4 class="font-bold text-lg">نقاط الضعف والتوصيات</h4>
+                </div>
+                <div id="recommendations-content" class="text-gray-600 text-sm space-y-3">
+                    <!-- Recommendations injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Quiz Data Definition ---
+        const rawQuestions = [
+            { q: 1, text: "تتولى المرافق العامة عدداً من الأنشطة التي ترتبط ارتباطاً مباشراً برفاهية أفراد المجتمع.", options: ["صح", "خطأ"], correct: 0, rationale: "المرافق العامة تهدف أساساً لإشباع حاجات عامة ضرورية.", hint: "الهدف الأساسي: الرفاهية." },
+            { q: 2, text: "المنتجات العامة الصافية (الاجتماعية) هي منتجات يمكن استبعاد أحد الأفراد من استهلاكها بسهولة.", options: ["صح", "خطأ"], correct: 1, rationale: "تتميز بعدم القدرة على الاستبعاد (مثل الأمن والدفاع).", hint: "فكر في الدفاع الوطني." },
+            { q: 3, text: "المرفق العام هو تعبير عن نشاط أو خدمة لا علاقة لها بحاجات المجتمع.", options: ["صح", "خطأ"], correct: 1, rationale: "يرتبط ارتباطاً وثيقاً بحاجات المجتمع.", hint: "تعريف المرفق العام." },
+            { q: 4, text: "يتولى إدارة المرفق العام الحكومة أو أحد أشخاص القانون العام.", options: ["صح", "خطأ"], correct: 0, rationale: "التعريف القانوني للمرفق العام.", hint: "من يدير الوزارات؟" },
+            { q: 5, text: "تهدف المرافق العامة الاقتصادية إلى تحقيق الربح كهدف وحيد وأساسي مثل القطاع الخاص.", options: ["صح", "خطأ"], correct: 1, rationale: "هدفها النفع العام، والربح ثانوي.", hint: "الفرق بين العام والخاص." },
+            { q: 6, text: "تعتبر المرافق العامة صناعات تنتج خدمات حيوية وضرورية لأفراد المجتمع.", options: ["صح", "خطأ"], correct: 0, rationale: "لا غنى عنها مثل الكهرباء والمياه.", hint: "هل يمكن الاستغناء عنها؟" },
+            { q: 7, text: "تتمتع المرافق العامة الاقتصادية غالباً بمركز احتكاري طبيعي.", options: ["صح", "خطأ"], correct: 0, rationale: "بسبب التكاليف الثابتة العالية.", hint: "هل توجد عدة شبكات مياه؟" },
+            { q: 8, text: "تتميز صناعة المرافق العامة بأنها منخفضة الكثافة الرأسمالية.", options: ["صح", "خطأ"], correct: 1, rationale: "هي كثيفة رأس المال (استثمارات ضخمة).", hint: "تكلفة المحطات والشبكات." },
+            { q: 9, text: "المرافق العامة الإدارية والتنظيمية هي خدمات اجتماعية قابلة لمبدأ الاستبعاد.", options: ["صح", "خطأ"], correct: 1, rationale: "غير قابلة للاستبعاد (متاحة للكافة).", hint: "الشرطة والقضاء." },
+            { q: 10, text: "المرافق العامة الإدارية والتنظيمية لها ميزانيات مستقلة تماماً عن موازنة الدولة.", options: ["صح", "خطأ"], correct: 1, rationale: "جزء من الموازنة العامة للدولة.", hint: "تمويل الشرطة." },
+            { q: 11, text: "المرافق العامة الاقتصادية تتولى تقديم منتجات قابلة لمبدأ الاستبعاد.", options: ["صح", "خطأ"], correct: 0, rationale: "مثل الكهرباء، يمكن قطعها.", hint: "الفاتورة." },
+            { q: 12, text: "المنتجات الجديرة بالإشباع (Merit Goods) هي منتجات لا يستطيع جهاز الثمن (السوق) إشباعها مطلقاً.", options: ["صح", "خطأ"], correct: 1, rationale: "السوق يوفرها (تعليم خاص) لكن الدولة تتدخل لضمان العدالة.", hint: "المدارس الخاصة." },
+            { q: 13, text: "الشرط الضروري لكون المشروع عاماً هو ملكية الدولة له.", options: ["صح", "خطأ"], correct: 0, rationale: "الملكية العامة هي الأساس.", hint: "الملكية." },
+            { q: 14, text: "المشروع العام يدار وفقاً لاعتبارات اقتصادية وقد يهدف لتحقيق الربح.", options: ["صح", "خطأ"], correct: 0, rationale: "يعمل بأسلوب تجاري.", hint: "الشركات القابضة." },
+            { q: 15, text: "وجود الآثار الخارجية يعني أن السعر السوقي يعكس بدقة التكلفة الاجتماعية.", options: ["صح", "خطأ"], correct: 1, rationale: "الآثار الخارجية تسبب فشل السوق في التسعير.", hint: "التلوث." },
+            { q: 16, text: "في المنتجات العامة، زيادة استهلاك أحد الأفراد لا ينقص استهلاك الآخرين.", options: ["صح", "خطأ"], correct: 0, rationale: "خاصية عدم التنافس.", hint: "البث الإذاعي." },
+            { q: 17, text: "المنتجات العامة قابلة للتسويق ويمكن تحديد سعر لها بسهولة.", options: ["صح", "خطأ"], correct: 1, rationale: "صعبة التسعير لعدم القدرة على الاستبعاد.", hint: "شراء الأمن." },
+            { q: 18, text: "تتسم صناعة المنتجات العامة بارتفاع درجة المخاطرة.", options: ["صح", "خطأ"], correct: 0, rationale: "بسبب ضخامة المال وطول فترة الاسترداد.", hint: "المشاريع العملاقة." },
+            { q: 19, text: "ظاهرة 'تزايد غلة الحجم' تعني أن زيادة الإنتاج تؤدي لزيادة متوسط التكلفة.", options: ["صح", "خطأ"], correct: 1, rationale: "تعني تناقص متوسط التكلفة.", hint: "الإنتاج الكبير." },
+            { q: 20, text: "في الاحتكار الطبيعي، تكون التكلفة أقل عند وجود منتج واحد.", options: ["صح", "خطأ"], correct: 0, rationale: "تفادي ازدواجية الاستثمار.", hint: "شبكة واحدة." },
+            { q: 21, text: "تهدف سياسة التسعير في المرافق العامة فقط إلى تعظيم الأرباح.", options: ["صح", "خطأ"], correct: 1, rationale: "هناك أهداف اجتماعية واقتصادية أخرى.", hint: "الخبز المدعم." },
+            { q: 22, text: "يمكن استخدام السعر كأداة لترشيد الاستهلاك.", options: ["صح", "خطأ"], correct: 0, rationale: "السعر المرتفع يقلل الإسراف.", hint: "شرائح الاستهلاك." },
+            { q: 23, text: "إذا كان الطلب غير مرن، فإن رفع السعر يؤثر بشدة على الكمية.", options: ["صح", "خطأ"], correct: 1, rationale: "الطلب غير المرن استجابته ضعيفة.", hint: "سلعة ضرورية." },
+            { q: 24, text: "تسعير الخدمة العامة بسعر 'التكلفة الحدية' يضمن دائماً تحقيق أرباح.", options: ["صح", "خطأ"], correct: 1, rationale: "في حالة تناقص التكاليف يسبب خسائر.", hint: "MC < AC." },
+            { q: 25, text: "مبدأ 'سعر التعادل' يعني تساوي الإيرادات الكلية مع التكاليف الكلية.", options: ["صح", "خطأ"], correct: 0, rationale: "لا ربح ولا خسارة.", hint: "التعادل." },
+            { q: 26, text: "التسعير بالتكلفة المتوسطة يضمن تغطية التكاليف ولكنه قد لا يحقق الكفاءة القصوى.", options: ["صح", "خطأ"], correct: 0, rationale: "يضمن التوازن المالي.", hint: "حل وسط." },
+            { q: 27, text: "التمييز السعري من الدرجة الثالثة يعني أسعاراً مختلفة لأسواق مختلفة.", options: ["صح", "خطأ"], correct: 0, rationale: "حسب مرونة الطلب لكل سوق.", hint: "منزلي vs تجاري." },
+            { q: 28, text: "وجود طاقات إنتاجية فائضة يعتبر دائماً سوء تخطيط.", options: ["صح", "خطأ"], correct: 1, rationale: "قد تكون ضرورية لمواجهة الذروة.", hint: "استهلاك الصيف." },
+            { q: 29, text: "تتسم المشروعات العامة بوضوح تام في وظيفة الرقابة.", options: ["صح", "خطأ"], correct: 1, rationale: "تعاني من تداخل الجهات الرقابية.", hint: "تعدد الجهات." },
+            { q: 30, text: "مشكلة اختيار القيادات من تحديات المشروعات العامة.", options: ["صح", "خطأ"], correct: 0, rationale: "نعم، نقص الكوادر.", hint: "الكفاءة." },
+            { q: 31, text: "المنفعة الحدية الاجتماعية هي مجموع المنفعة الخاصة والخارجية.", options: ["صح", "خطأ"], correct: 0, rationale: "المجتمع + الفرد.", hint: "الكل." },
+            { q: 32, text: "في الآثار الخارجية الموجبة، ينتج السوق الحر كميات أكبر من الأمثل.", options: ["صح", "خطأ"], correct: 1, rationale: "ينتج أقل من الأمثل.", hint: "التعليم والقطاع الخاص." },
+            { q: 33, text: "التسعير المزدوج يتكون من جزء ثابت وجزء متغير.", options: ["صح", "خطأ"], correct: 0, rationale: "اشتراك + استهلاك.", hint: "فاتورة الهاتف." },
+            { q: 34, text: "تحقيق 'أقصى ربح' هو المبدأ الأنسب للمرافق العامة.", options: ["صح", "خطأ"], correct: 1, rationale: "قد يضر بالرفاهية.", hint: "الهدف الحكومي." },
+            { q: 35, text: "الاحتكار الطبيعي ينتج عن تشريعات حكومية.", options: ["صح", "خطأ"], correct: 1, rationale: "ينتج عن طبيعة الصناعة (التكلفة).", hint: "طبيعي." },
+            { q: 36, text: "من عيوب تسعير التعادل أنه لا يوفر فائضاً للتوسع.", options: ["صح", "خطأ"], correct: 0, rationale: "الإيراد يغطي التكلفة فقط.", hint: "الاستثمار." },
+            { q: 37, text: "العدالة الاجتماعية قد تقتضي تقديم خدمات مجانية.", options: ["صح", "خطأ"], correct: 0, rationale: "للفقراء.", hint: "مجانية التعليم." },
+            { q: 38, text: "معامل مرونة النفقات يقيس استجابة النفقات للتغير في السعر.", options: ["صح", "خطأ"], correct: 1, rationale: "للتغير في الإنتاج.", hint: "التكاليف والإنتاج." },
+            { q: 39, text: "منحنى الطلب للمحتكر هو نفسه منحنى الإيراد المتوسط.", options: ["صح", "خطأ"], correct: 0, rationale: "السعر = الإيراد المتوسط.", hint: "السعر." },
+            { q: 40, text: "إذا كانت التكلفة الحدية صفر، السعر الأمثل اجتماعياً يجب أن يكون صفراً.", options: ["صح", "خطأ"], correct: 0, rationale: "شرط الكفاءة P=MC.", hint: "الجسر الفارغ." },
+            { q: 41, text: "التسعير عند MR=MC يحقق أقصى رفاهية للمجتمع.", options: ["صح", "خطأ"], correct: 1, rationale: "يحقق أقصى ربح للمحتكر، ليس رفاهية.", hint: "مصلحة المحتكر." },
+            { q: 42, text: "الإعانات الحكومية للمرافق قد تقلل حافز الكفاءة.", options: ["صح", "خطأ"], correct: 0, rationale: "الاعتماد على الدعم.", hint: "الكسل." },
+            { q: 43, text: "الوفورات الخارجية تعني انخفاض تكاليف نتيجة عوامل داخلية.", options: ["صح", "خطأ"], correct: 1, rationale: "عوامل خارجية (البيئة).", hint: "خارجية." },
+            { q: 44, text: "الطلب على المرافق العامة يتسم بالثبات التام.", options: ["صح", "خطأ"], correct: 1, rationale: "يتقلب بشدة (ذروة).", hint: "ليل ونهار." },
+            { q: 45, text: "التسعير بالتكلفة الحدية صعب التطبيق عملياً.", options: ["صح", "خطأ"], correct: 0, rationale: "بسبب تذبذب الأسعار وحساب التكلفة.", hint: "تغيير السعر." },
+            { q: 46, text: "الرقابة الفعالة تركز فقط على تصيد الأخطاء.", options: ["صح", "خطأ"], correct: 1, rationale: "هدفها التقويم.", hint: "الإصلاح." },
+            { q: 47, text: "الاعتماد على الأجانب هو الحل الأمثل لإدارة المرافق.", options: ["صح", "خطأ"], correct: 1, rationale: "الكوادر الوطنية أفضل.", hint: "الوطنية." },
+            { q: 48, text: "نظام الحوافز في المشروعات العامة يرتبط بالأقدمية غالباً.", options: ["صح", "خطأ"], correct: 0, rationale: "عيب إداري.", hint: "الروتين." },
+            { q: 49, text: "تنجح المرافق العامة دون استقلال مالي وإداري.", options: ["صح", "خطأ"], correct: 1, rationale: "الاستقلال ضروري للمرونة.", hint: "القيود." },
+            { q: 50, text: "الهدف الاجتماعي قد يتعارض مع الكفاءة الاقتصادية.", options: ["صح", "خطأ"], correct: 0, rationale: "التوظيف الاجتماعي يرفع التكلفة.", hint: "البطالة." },
+            
+            // Multiple Choice (Sample of remaining 50 mapped logically)
+            { q: 51, text: "أي مما يلي لا يعتبر من خصائص 'المرافق العامة الاقتصادية'؟", options: ["قابلة للاستبعاد", "يمكن إنتاجها خاصاً", "عدم القدرة على الاستبعاد", "قابلة للتسويق"], correct: 2, rationale: "عدم القدرة على الاستبعاد خاصية السلع العامة البحتة.", hint: "الكهرباء يمكن فصلها." },
+            { q: 52, text: "منتجات تفشل السوق في توفيرها بالقدر الكافي لأهميتها (كالتعليم):", options: ["المنتجات الخاصة", "المنتجات الجديرة بالإشباع", "السلع الكمالية", "المرافق الإدارية"], correct: 1, rationale: "Merit Goods.", hint: "تستحق الدعم." },
+            { q: 53, text: "تتحقق الكفاءة الاقتصادية عندما يتعادل السعر مع:", options: ["التكلفة المتوسطة", "التكلفة الحدية", "الإيراد المتوسط", "التكلفة الثابتة"], correct: 1, rationale: "P = MC.", hint: "شرط الكفاءة." },
+            { q: 54, text: "في رسم الآثار الخارجية، المسافة الرأسية بين التكلفة الخاصة والاجتماعية تمثل:", options: ["سعر السوق", "التكلفة الثابتة", "قيمة الأثر الخارجي", "فائض المستهلك"], correct: 2, rationale: "الضريبة التصحيحية.", hint: "الفرق." },
+            { q: 55, text: "عند التسعير بسعر التعادل (P=AC)، المشروع:", options: ["يربح كثيراً", "لا يربح ولا يخسر", "يخسر", "يحتاج دعم"], correct: 1, rationale: "يغطي تكاليفه.", hint: "توازن." },
+            { q: 56, text: "الاحتكار الطبيعي ينشأ في صناعات تتميز بـ:", options: ["تناقص التكاليف", "تزايد التكاليف", "سهولة الدخول", "صغر رأس المال"], correct: 0, rationale: "وفورات الحجم.", hint: "الكبر أوفر." },
+            { q: 57, text: "لتحقيق أقصى ربح، ينتج المحتكر عند تقاطع:", options: ["الطلب و AC", "MR و MC", "السعر و AVC", "AC و AR"], correct: 1, rationale: "شرط تعظيم الربح.", hint: "الإيراد الحدي والتكلفة الحدية." },
+            { q: 58, text: "التمييز السعري الذي يستولي على كل فائض المستهلك:", options: ["الدرجة الأولى", "الدرجة الثانية", "الدرجة الثالثة", "التسعير الموحد"], correct: 0, rationale: "يأخذ كل شيء.", hint: "الدرجة الكاملة." },
+            { q: 59, text: "تسعير التكلفة الحدية في حالة تناقص التكاليف يؤدي إلى:", options: ["أرباح", "خسائر", "تعادل", "تغطية تكاليف"], correct: 1, rationale: "السعر يكون أقل من المتوسط.", hint: "MC < AC." },
+            { q: 60, text: "خصائص المنتجات العامة البحتة:", options: ["تنافس", "استبعاد", "عدم استبعاد وعدم تنافس", "ربحية"], correct: 2, rationale: "للجميع وبلا نقصان.", hint: "الهواء." },
+            { q: 61, text: "منحنى التكلفة المتوسطة في الاحتكار الطبيعي يكون:", options: ["متزايداً", "متناقصاً", "ثابتاً", "U-shape"], correct: 1, rationale: "وفورات حجم مستمرة.", hint: "ينزل لأسفل." },
+            { q: 62, text: "إذا كان السعر أعلى من التكلفة المتوسطة (P > AC):", options: ["فائض (ربح)", "خسارة", "تعادل", "توقف"], correct: 0, rationale: "دخل أكبر من تكلفة.", hint: "مكسب." },
+            { q: 63, text: "حل لتجنب خسائر التسعير الحدي:", options: ["التسعير المزدوج", "الإغلاق", "المجان", "الضرائب للفقراء"], correct: 0, rationale: "ثابت ومتغير.", hint: "اشتراك." },
+            { q: 64, text: "المنفعة الحدية الخاصة تعود على:", options: ["المجتمع", "المستهلك المباشر", "الجيران", "الحكومة"], correct: 1, rationale: "الشخص نفسه.", hint: "خاصة." },
+            { q: 65, text: "العجز المقصود هو:", options: ["سوء إدارة", "طاقة للمستقبل", "سرقة", "نقص طلب"], correct: 1, rationale: "تخطيط استراتيجي.", hint: "للمستقبل." },
+            { q: 66, text: "هدف شرائح استهلاك الكهرباء:", options: ["عدالة وترشيد", "خسارة", "تعقيد", "منع"], correct: 0, rationale: "يدفع الأكثر استهلاكاً أكثر.", hint: "العدالة." },
+            { q: 67, text: "المرافق كثيفة رأس المال تحتاج:", options: ["عمالة", "تمويل ضخم وطويل", "تغيير نشاط", "تبرعات"], correct: 1, rationale: "أصول ثابتة غالية.", hint: "فلوس كتير." },
+            { q: 68, text: "مثال على آثار خارجية سالبة:", options: ["تعليم", "تلوث", "تطعيم", "إنارة"], correct: 1, rationale: "ضرر.", hint: "دخان." },
+            { q: 69, text: "إذا كان الطلب مرناً جداً، تخفيض السعر:", options: ["يزيد الكمية بوضوح", "ينقص الكمية", "لا يؤثر", "يقلل الإيراد"], correct: 0, rationale: "استجابة قوية.", hint: "حساسية." },
+            { q: 70, text: "منتج واحد بلا بدائل:", options: ["منافسة", "احتكار", "منافسة احتكارية", "قلة"], correct: 1, rationale: "واحد.", hint: "السيطرة." },
+            { q: 71, text: "الكفاءة التشغيلية:", options: ["أقل تكلفة مع جودة", "زيادة سعر", "توظيف زائد", "إلغاء"], correct: 0, rationale: "فنية.", hint: "توفير." },
+            { q: 72, text: "مبرر تدخل الدولة بالمرافق:", options: ["فشل السوق", "منافسة صغار", "ربح سريع", "تقليل جودة"], correct: 0, rationale: "عجز الخاص.", hint: "فشل." },
+            { q: 73, text: "تقاطع MC مع AC عند:", options: ["أعلى نقطة", "أدنى نقطة لـ AC", "البداية", "لا يتقاطعان"], correct: 1, rationale: "قاعدة فنية.", hint: "القاع." },
+            { q: 74, text: "استهلاك الفرد لا ينقص الآخرين:", options: ["تنافسية", "عدم تنافسية", "استبعاد", "ندرة"], correct: 1, rationale: "Non-rivalry.", hint: "مشاركة." },
+            { q: 75, text: "تمويل عجز خدمة للأغنياء:", options: ["ضرائب عامة", "رفع السعر عليهم", "اقتراض", "خفض جودة"], correct: 1, rationale: "مبدأ النفع.", hint: "اللي يشيل." },
+            { q: 76, text: "تقاطع العرض والطلب:", options: ["توازن", "أقصى ربح", "خسارة", "تكلفة ثابتة"], correct: 0, rationale: "استقرار.", hint: "اتفاق." },
+            { q: 77, text: "AC أعلى من AR دائماً:", options: ["ربح", "خسارة", "كفاءة", "احتكار"], correct: 1, rationale: "تكلفة > سعر.", hint: "سالب." },
+            { q: 78, text: "الفرق بين المرفق العام والخاص:", options: ["الهدف", "العمالة", "الموقع", "التكنولوجيا"], correct: 0, rationale: "نفع vs ربح.", hint: "النية." },
+            { q: 79, text: "في التكاليف المتناقصة، MC تكون:", options: ["أعلى من AC", "أقل من AC", "مساوية", "صفر"], correct: 1, rationale: "تشد المتوسط لأسفل.", hint: "تحت." },
+            { q: 80, text: "مشكلة تعظيم الربح في المرافق:", options: ["زيادة إنتاج", "تقليل إنتاج ورفع سعر", "جودة", "خفض سعر"], correct: 1, rationale: "سلوك احتكاري.", hint: "ندرة." },
+            { q: 81, text: "نفع عام وخاص مع استبعاد:", options: ["عامة بحتة", "جديرة بالإشباع", "استهلاكية", "رديئة"], correct: 1, rationale: "تعليم وصحة.", hint: "شبه عامة." },
+            { q: 82, text: "التحميل الشامل:", options: ["متغيرة فقط", "ثابتة ومتغيرة", "ضرائب", "تجاهل ثابتة"], correct: 1, rationale: "كل التكاليف.", hint: "شامل." },
+            { q: 83, text: "هدف المشروع العام:", options: ["قضاء على منافسة", "تنمية", "تخزين مال", "بطالة"], correct: 1, rationale: "دور الدولة.", hint: "تطور." },
+            { q: 84, text: "دعم الخبز يعني سعراً:", options: ["أعلى من توازن", "أقل من توازن", "سوق سوداء", "يساوي MC"], correct: 1, rationale: "لمصلحة الفقير.", hint: "رخيص." },
+            { q: 85, text: "التسعير حسب القيمة:", options: ["تمييز سعري", "حدي", "تعادل", "منافسة"], correct: 0, rationale: "قدرة العميل.", hint: "تمييز." },
+            { q: 86, text: "عيب الرقابة المباشرة:", options: ["جمود وروتين", "ربح", "سرعة", "ابتكار"], correct: 0, rationale: "بيروقراطية.", hint: "بطء." },
+            { q: 87, text: "تحليل تكلفة وعائد للمشروع العام:", options: ["مالي فقط", "اجتماعي واقتصادي", "رأي مدير", "أرباح أسهم"], correct: 1, rationale: "رفاهية المجتمع.", hint: "الصورة الكاملة." },
+            { q: 88, text: "طلب غير مرن وزيادة سعر:", options: ["نقص إيراد", "زيادة إيراد", "ثبات", "توقف"], correct: 1, rationale: "الناس مضطرة تشتري.", hint: "مكسب." },
+            { q: 89, text: "تمويل الطرق:", options: ["ضرائب عامة", "تبرع", "بيع", "غرامة"], correct: 0, rationale: "خدمة عامة مجانية غالباً.", hint: "الميزانية." },
+            { q: 90, text: "أهمية الاستقلال:", options: ["تهرب", "مرونة وكفاءة", "محسوبية", "تجاهل"], correct: 1, rationale: "بعد عن الروتين.", hint: "حرية." },
+            { q: 91, text: "حاجز دخول للاحتكار الطبيعي:", options: ["تكاليف أولية ضخمة", "تكنولوجيا", "تعدد", "سهولة"], correct: 0, rationale: "رأس مال.", hint: "فلوس البداية." },
+            { q: 92, text: "تغطية عجز التسعير الحدي:", options: ["ضرائب (دعم)", "إغلاق", "بيع", "رواتب"], correct: 0, rationale: "من الدولة.", hint: "إعانة." },
+            { q: 93, text: "الاستهلاك المشترك:", options: ["خاصة", "لا ينقص الآخرين", "جمعية", "رخيصة"], correct: 1, rationale: "جماعي.", hint: "مع بعض." },
+            { q: 94, text: "صعوبة قياس الكفاءة:", options: ["تعدد أهداف", "محاسبة", "ربح", "موظفين"], correct: 0, rationale: "اجتماعي واقتصادي.", hint: "الهدف مش فلوس بس." },
+            { q: 95, text: "العائد الاجتماعي يشمل:", options: ["ضرائب", "آثار خارجية", "فائدة", "أرباح"], correct: 1, rationale: "بيئة ومجتمع.", hint: "خارج المشروع." },
+            { q: 96, text: "توسيع قاعدة الاستفادة:", options: ["حكر", "تخفيض للفقراء", "رفع", "إلغاء"], correct: 1, rationale: "وصول للكل.", hint: "شعبية." },
+            { q: 97, text: "في التكاليف المتناقصة MC تقع:", options: ["فوق AC", "تحت AC", "موازية", "عمودية"], correct: 1, rationale: "رياضياً.", hint: "أسفل." },
+            { q: 98, text: "ليس من شروط التمييز السعري:", options: ["قوة", "فصل", "مرونة", "مجانية"], correct: 3, rationale: "المجاني لا سعر له.", hint: "بلاش." },
+            { q: 99, text: "التسعير الموسمي:", options: ["إزعاج", "إدارة حمل", "زيادة استهلاك", "خفض ربح"], correct: 1, rationale: "توزيع الطلب.", hint: "الذروة." },
+            { q: 100, text: "نظام الهيئة العامة:", options: ["استقلال نسبي", "تبعية كاملة", "خاصة", "بلا ميزانية"], correct: 0, rationale: "شخصية اعتبارية.", hint: "مرونة." }
+        ];
+
+        // --- 2. Smart Categorization Logic ---
+        const categories = {
+            "مفاهيم وخصائص": ["مرافق", "مرفق", "منتجات عامة", "استبعاد", "تنافس", "اجتماعية", "خصائص", "مشترك", "جديرة"],
+            "سياسات التسعير": ["سعر", "تسعير", "ثمن", "تكلفة", "تعادل", "تمييز", "قيمة", "مجانية", "شامل", "موسمي", "شرائح"],
+            "نظريات السوق والاحتكار": ["احتكار", "سوق", "طلب", "عرض", "مرونة", "منافسة", "إيراد", "كمية", "بدائل"],
+            "الإدارة والتمويل": ["إدارة", "حكومة", "ميزانية", "تمويل", "عجز", "استثمار", "رأس مال", "مخاطرة", "رقابة", "حوافز", "قروض", "ضرائب", "كوادر", "استقلال", "هيئة"],
+            "الكفاءة والآثار الخارجية": ["كفاءة", "آثار", "خارجية", "رفاهية", "منفعة", "عائد", "اجتماعي"]
+        };
+
+        const recommendationsDB = {
+            "مفاهيم وخصائص": "لديك خلط في المفاهيم الأساسية. ركز على التفرقة بين المرفق العام والمشروع الاقتصادي، وفهم خصائص السلع العامة (الاستبعاد والتنافس).",
+            "سياسات التسعير": "هذا الجزء هو جوهر المادة. تحتاج لمراجعة منحنيات التكلفة (الحدية والمتوسطة) ومتى نستخدم كل سياسة تسعيرية (التعادل، التمييز السعري).",
+            "نظريات السوق والاحتكار": "راجع شروط تعظيم الربح (MR=MC) والفرق بين المنافسة والاحتكار الطبيعي. ارسم المنحنيات بيدك لفهمها.",
+            "الإدارة والتمويل": "تحتاج لفهم مشاكل القطاع العام (البيروقراطية، التمويل). ركز على كيفية تمويل العجز وأساليب الرقابة.",
+            "الكفاءة والآثار الخارجية": "جزء دقيق. افهم الفرق بين التكلفة الخاصة والاجتماعية، وكيف تتدخل الدولة لعلاج فشل السوق."
+        };
+
+        // Assign categories automatically
+        const quizData = rawQuestions.map(q => {
+            let assignedCat = "مفاهيم وخصائص"; // Default
+            let maxMatches = 0;
+
+            for (const [cat, keywords] of Object.entries(categories)) {
+                let matches = keywords.filter(k => q.text.includes(k) || q.rationale.includes(k)).length;
+                if (matches > maxMatches) {
+                    maxMatches = matches;
+                    assignedCat = cat;
+                }
+            }
+            return { ...q, category: assignedCat };
+        });
+
+        // --- 3. App State ---
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let timer;
+        const TIME_LIMIT = 45;
+        let categoryScores = {}; // To track performance per category
+
+        // --- 4. Core Functions ---
+        
+        function startQuiz() {
+            // Reset Analysis
+            for (let cat in categories) {
+                categoryScores[cat] = { total: 0, correct: 0 };
+            }
+
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            document.getElementById('quiz-screen').classList.add('flex');
+            
+            currentQuestionIndex = 0;
+            score = 0;
+            document.getElementById('total-q-num').innerText = quizData.length;
+            showQuestion();
+        }
+
+        function showQuestion() {
+            resetState();
+            const q = quizData[currentQuestionIndex];
+            
+            // Update UI
+            document.getElementById('current-q-num').innerText = currentQuestionIndex + 1;
+            document.getElementById('progress-bar').style.width = `${((currentQuestionIndex) / quizData.length) * 100}%`;
+            document.getElementById('question-text').innerText = q.text;
+            document.getElementById('current-score').innerText = score;
+
+            // Show Category Badge
+            const catBadge = document.getElementById('category-badge');
+            catBadge.innerText = q.category;
+            catBadge.classList.remove('hidden');
+
+            // Hint Logic
+            if(q.hint) {
+                document.getElementById('hint-content').innerText = q.hint;
+                document.getElementById('hint-text').classList.remove('hidden');
+            } else {
+                document.getElementById('hint-text').classList.add('hidden');
+            }
+
+            // Image Logic (Mockup based on text content)
+            const imgContainer = document.getElementById('question-image-container');
+            if (q.text.includes("رسم") || q.text.includes("شكل") || q.text.includes("منحنى")) {
+                imgContainer.classList.remove('hidden');
+            } else {
+                imgContainer.classList.add('hidden');
+            }
+
+            // Options
+            const optsContainer = document.getElementById('options-container');
+            q.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.innerText = optText;
+                btn.className = "w-full text-right bg-white hover:bg-blue-50 p-5 rounded-xl border border-gray-200 shadow-sm transition-all duration-200 font-bold text-gray-700 hover:shadow-md hover:border-blue-300 flex justify-between items-center group";
+                // Add empty circle icon
+                btn.innerHTML += '<i class="far fa-circle text-gray-300 group-hover:text-blue-400 text-xl"></i>';
+                
+                btn.onclick = () => selectAnswer(index, btn);
+                optsContainer.appendChild(btn);
+            });
+
+            startTimer();
+        }
+
+        function resetState() {
+            clearInterval(timer);
+            // Reset Timer UI
+            const circle = document.getElementById('timer-circle');
+            const circumference = 2 * Math.PI * 18;
+            circle.style.strokeDasharray = `${circumference}`;
+            circle.style.strokeDashoffset = '0';
+            circle.classList.remove('text-red-500');
+            circle.classList.add('text-green-500');
+            document.getElementById('timer-text').innerText = TIME_LIMIT;
+            
+            document.getElementById('options-container').innerHTML = '';
+            document.getElementById('feedback-area').classList.add('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+        }
+
+        function startTimer() {
+            let timeLeft = TIME_LIMIT;
+            const circle = document.getElementById('timer-circle');
+            const circumference = 2 * Math.PI * 18; // approx 113
+
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer-text').innerText = timeLeft;
+                
+                // SVG Progress
+                const offset = circumference - (timeLeft / TIME_LIMIT) * circumference;
+                circle.style.strokeDashoffset = offset;
+
+                if (timeLeft < 10) {
+                    circle.classList.remove('text-green-500');
+                    circle.classList.add('text-red-500');
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    handleTimeOut();
+                }
+            }, 1000);
+        }
+
+        function handleTimeOut() {
+            const q = quizData[currentQuestionIndex];
+            // Disable buttons
+            const buttons = document.getElementById('options-container').children;
+            for(let btn of buttons) btn.disabled = true;
+
+            // Highlight Correct
+            buttons[q.correct].classList.add('bg-green-100', 'border-green-500');
+            buttons[q.correct].innerHTML = buttons[q.correct].innerText + '<i class="fas fa-check-circle text-green-600 text-xl"></i>';
+
+            showFeedback(false, "انتهى الوقت!", "تجاوزت الوقت المحدد للإجابة.");
+            updateAnalysis(q.category, false);
+        }
+
+        function selectAnswer(selectedIndex, btn) {
+            clearInterval(timer);
+            const q = quizData[currentQuestionIndex];
+            const isCorrect = (selectedIndex === q.correct);
+            
+            // Disable all
+            const buttons = document.getElementById('options-container').children;
+            for(let b of buttons) {
+                b.disabled = true;
+                b.classList.add('opacity-70');
+            }
+            btn.classList.remove('opacity-70');
+
+            if (isCorrect) {
+                score++;
+                btn.classList.remove('bg-white', 'hover:bg-blue-50');
+                btn.classList.add('bg-green-100', 'border-green-500', 'text-green-900', 'correct-anim');
+                btn.querySelector('i').className = "fas fa-check-circle text-green-600 text-xl";
+            } else {
+                btn.classList.remove('bg-white', 'hover:bg-blue-50');
+                btn.classList.add('bg-red-100', 'border-red-500', 'text-red-900', 'wrong-anim');
+                btn.querySelector('i').className = "fas fa-times-circle text-red-600 text-xl";
+                
+                // Show Correct
+                const correctBtn = buttons[q.correct];
+                correctBtn.classList.remove('bg-white', 'opacity-70');
+                correctBtn.classList.add('bg-green-50', 'border-green-300', 'text-green-800');
+                correctBtn.querySelector('i').className = "fas fa-check-circle text-green-600 text-xl";
+            }
+
+            updateAnalysis(q.category, isCorrect);
+            showFeedback(isCorrect, isCorrect ? "إجابة ممتازة!" : "إجابة خاطئة", q.rationale);
+        }
+
+        function updateAnalysis(category, isCorrect) {
+            if (!categoryScores[category]) categoryScores[category] = { total: 0, correct: 0 };
+            categoryScores[category].total++;
+            if (isCorrect) categoryScores[category].correct++;
+        }
+
+        function showFeedback(isSuccess, title, text) {
+            const area = document.getElementById('feedback-area');
+            const icon = document.getElementById('feedback-icon');
+            const titleEl = document.getElementById('feedback-title');
+            const textEl = document.getElementById('feedback-rationale');
+
+            area.classList.remove('hidden', 'bg-green-50', 'border-green-200', 'text-green-900', 'bg-red-50', 'border-red-200', 'text-red-900');
+
+            if(isSuccess) {
+                area.classList.add('bg-green-50', 'border-green-200', 'text-green-900');
+                icon.innerHTML = '<i class="fas fa-check-circle text-green-500"></i>';
+            } else {
+                area.classList.add('bg-red-50', 'border-red-200', 'text-red-900');
+                icon.innerHTML = '<i class="fas fa-times-circle text-red-500"></i>';
+            }
+
+            titleEl.innerText = title;
+            textEl.innerText = text;
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                showQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('flex');
+            document.getElementById('result-screen').classList.remove('hidden');
+
+            // 1. Final Score
+            const percentage = Math.round((score / quizData.length) * 100);
+            
+            // Animate Score
+            let s = 0;
+            const interval = setInterval(() => {
+                if (s >= percentage) clearInterval(interval);
+                else {
+                    s++;
+                    document.getElementById('final-score').innerText = s;
+                }
+            }, 15);
+
+            // Message
+            const msgEl = document.getElementById('result-message');
+            if (percentage >= 85) msgEl.innerText = "أداء أسطوري! أنت مستعد تماماً للامتحان.";
+            else if (percentage >= 60) msgEl.innerText = "جيد جداً، لكن هناك بعض الثغرات تحتاج لسدها.";
+            else msgEl.innerText = "تحتاج لمراجعة شاملة. انظر للتحليل بالأسفل.";
+
+            // 2. Generate Charts (Category Bars)
+            const barsContainer = document.getElementById('category-bars-container');
+            const recContainer = document.getElementById('recommendations-content');
+            
+            barsContainer.innerHTML = '';
+            recContainer.innerHTML = '';
+
+            let weakCategories = [];
+
+            for (const [cat, data] of Object.entries(categoryScores)) {
+                if (data.total === 0) continue;
+                
+                const catPercent = Math.round((data.correct / data.total) * 100);
+                let barColor = "bg-green-500";
+                if (catPercent < 50) {
+                    barColor = "bg-red-500";
+                    weakCategories.push(cat);
+                } else if (catPercent < 80) {
+                    barColor = "bg-yellow-500";
+                }
+
+                const html = `
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-bold text-gray-700">${cat}</span>
+                            <span class="text-sm font-bold text-gray-500">${catPercent}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div class="${barColor} h-2.5 rounded-full category-bar" style="width: ${catPercent}%"></div>
+                        </div>
+                    </div>
+                `;
+                barsContainer.innerHTML += html;
+            }
+
+            // 3. Generate Recommendations
+            if (weakCategories.length === 0) {
+                recContainer.innerHTML = `<div class="p-3 bg-green-50 text-green-700 rounded-lg"><i class="fas fa-check-circle ml-2"></i> لا توجد نقاط ضعف واضحة. ممتاز!</div>`;
+            } else {
+                weakCategories.forEach(cat => {
+                    const advice = recommendationsDB[cat] || "راجع الفصل الخاص بهذا الموضوع في الكتاب.";
+                    const html = `
+                        <div class="p-3 bg-orange-50 rounded-lg border-r-4 border-orange-400">
+                            <strong class="block text-gray-800 mb-1">${cat}:</strong>
+                            ${advice}
+                        </div>
+                    `;
+                    recContainer.innerHTML += html;
+                });
+            }
+        }
+
+        function restartQuiz() {
+            startQuiz();
+        }
+    </script>
+</body>
+</html>
